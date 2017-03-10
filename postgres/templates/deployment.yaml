@@ -43,6 +43,11 @@ spec:
           configMap:
             name: postgres-bin-{{.Values.name}}
             defaultMode: 0755
+{{ if .Values.exporter }}
+        - name: extend-query
+          configMap:
+            name: extend-query-{{.Values.name}}
+{{ end }}
       containers:
         - name: postgres
           image: {{.Values.global.image_repository}}/{{.Values.global.image_namespace}}/postgres:{{.Values.image_version_postgres}}
@@ -124,3 +129,20 @@ spec:
           ports:
             - name: metrics
               containerPort: {{.Values.port_metrics}}
+{{ if .Values.exporter }}
+          args: ["-extend.query-path", "/queries/extend.yaml"]
+          volumeMounts:
+            - name: extend-query
+              mountPath: /queries
+---
+kind: ConfigMap
+apiVersion: v1
+  name: extend-query-{{.Values.name}}
+  namespace:  {{.Release.Namespace}}
+  labels:
+    system: openstack
+    type: database
+    component: {{.Values.name}}
+data:
+    extend.yaml: {{ .Values.exporter }}
+{{ end }}
